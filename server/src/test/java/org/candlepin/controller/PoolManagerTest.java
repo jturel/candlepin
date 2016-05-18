@@ -1181,10 +1181,44 @@ public class PoolManagerTest {
         Pool p = TestUtil.createPool(s.getProduct());
         p.setSourceSubscription(new SourceSubscription(s.getId(), "derived"));
         existingPools.add(p);
+        when(mockPoolCurator.lockAndLoad(eq(p))).thenReturn(p);
         pRules.createAndEnrichPools(s, existingPools);
         List<Pool> newPools = pRules.createAndEnrichPools(s, existingPools);
         assertEquals(newPools.size(), 1);
         assertEquals(newPools.get(0).getSourceSubscription().getSubscriptionSubKey(), "master");
+    }
+
+    @Test
+    public void updatePoolsForExistingSubscriptionsBonusExist() {
+        Owner owner = this.getOwner();
+        PoolRules pRules = new PoolRules(manager, mockConfig, entitlementCurator, mockProductCurator);
+        List<Subscription> subscriptions = Util.newList();
+        Product prod = TestUtil.createProduct(owner);
+        Set<Product> products = new HashSet<Product>();
+        products.add(prod);
+        // productCache.addProducts(products);
+        prod.setAttribute("virt_limit", "4");
+        Subscription s = TestUtil.createSubscription(owner, prod);
+        subscriptions.add(s);
+        when(mockProductCurator.lookupById(owner, prod.getId())).thenReturn(prod);
+        when(mockSubAdapter.getSubscriptions(any(Owner.class))).thenReturn(subscriptions);
+        when(mockConfig.getBoolean(ConfigProperties.STANDALONE)).thenReturn(false);
+
+        List<Pool> existingPools = new LinkedList<Pool>();
+        Pool p = TestUtil.createPool(s.getProduct());
+        p.setSourceSubscription(new SourceSubscription(s.getId(), "derived"));
+        existingPools.add(p);
+        when(mockPoolCurator.lockAndLoad(eq(p))).thenReturn(p);
+        pRules.createAndEnrichPools(s, existingPools);
+        List<Pool> newPools = pRules.createAndEnrichPools(s, existingPools);
+        assertEquals(newPools.size(), 1);
+        assertEquals(newPools.get(0).getSourceSubscription().getSubscriptionSubKey(), "master");
+        assertEquals(p.getQuantity(), new Long(4000));
+
+        prod.setAttribute("virt_limit", "8");
+        existingPools.add(newPools.get(0));
+        pRules.createAndEnrichPools(s, existingPools);
+        assertEquals(p.getQuantity(), new Long(8000));
     }
 
     @Test(expected = IllegalStateException.class)

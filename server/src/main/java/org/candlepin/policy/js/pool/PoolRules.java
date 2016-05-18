@@ -148,6 +148,7 @@ public class PoolRules {
 
         log.info("Checking if bonus pools need to be created for pool: {}", masterPool);
 
+
         if (attributes.containsKey("virt_limit") && !hasBonusPool(existingPools) && virtQuantity != null) {
 
             boolean hostLimited = attributes.containsKey("host_limited") &&

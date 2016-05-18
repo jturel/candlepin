@@ -385,6 +385,19 @@ class StandardExporter < Exporter
         :attributes => { :arch => "x86_64", :virt_limit => "unlimited"}
     })
 
+    @products[:product_virt_limit] = create_product('product_virt_limit', random_string(), {
+        :attributes => { :arch => "x86_64", :virt_limit => "7"}
+    })
+    @products[:derived_product_virt_limit] = create_product('derived_product_virt_limit', random_string(),
+        {"sockets" => "2"})
+
+    @products[:product_virt_limit_hosted] = create_product('product_virt_limit_hosted', random_string(), {
+        :attributes => { :arch => "x86_64", :virt_limit => "15", :host_limited => "true"}
+    })
+    @products[:derived_product_virt_limit_hosted] = create_product('derived_product_virt_limit_hosted', random_string(),
+        {"sockets" => "2"})
+
+
     @products[:derived_product] = create_product(random_string('sub-prov-prod'), random_string(),
         {"sockets" => "2"})
     @products[:derived_provided_prod] = create_product(random_string(nil, true), random_string());
@@ -421,13 +434,17 @@ class StandardExporter < Exporter
       {:branding => brandings})
     create_pool_and_subscription(@owner['key'], @products[:product2].id, 4, [], '', '12345', '6789', nil, end_date, true)
     create_pool_and_subscription(@owner['key'], @products[:virt_product].id, 10, [], '', '12345', '6789', nil, end_date, true)
+    create_pool_and_subscription(@owner['key'], @products[:product_virt_limit].id, 10, [], '', '12345', '6789', nil, end_date, true,
+      {:derived_product_id => @products[:derived_product_virt_limit]['id']})
+    create_pool_and_subscription(@owner['key'], @products[:product_virt_limit_hosted].id, 10, [], '', '12345', '6789', nil, end_date, true,
+      {:derived_product_id => @products[:derived_product_virt_limit_hosted]['id']})
     create_pool_and_subscription(@owner['key'], @products[:product3].id, 5, [], '', '12345', '6789', nil, end_date, true,
       {:derived_product_id => @products[:derived_product]['id'],  :derived_provided_products => [@products[:derived_provided_prod]['id']]})
     create_pool_and_subscription(@owner['key'], @products[:product_up].id, 10, [], '', '12345', '6789', nil, end_date)
 
     # Pool names is a list of names of instance variables that will be created
-    pool_names = ["pool1", "pool2", "pool3", "pool4", "pool_up"]
-    pool_products = [:product1, :product2, :product3, :virt_product, :product_up]
+    pool_names = ["pool1", "pool2", "pool3", "pool4", "pool_up", "pool_virt_limit", "pool_virt_limit_hosted"]
+    pool_products = [:product1, :product2, :product3, :virt_product, :product_up, :product_virt_limit, :product_virt_limit_hosted]
 
     # Take the names and couple them together with keys in the @products hash.
     # Then for each pair, set an instance variable with the value of the list_pools
@@ -439,8 +456,8 @@ class StandardExporter < Exporter
     @candlepin_client.update_consumer({:facts => {"distributor_version" => "sam-1.3"}})
     @candlepin_consumer = @candlepin_client.get_consumer()
 
-    ent_names = ["entitlement1", "entitlement2", "entitlement3", "entitlement_up"]
-    ent_names.zip([@pool1, @pool2, @pool4, @pool_up]).each do |ent_name, pool|
+    ent_names = ["entitlement1", "entitlement2", "entitlement3", "entitlement_up", "entitlement_virt_limit", "entitlement_virt_limit_hosted"]
+    ent_names.zip([@pool1, @pool2, @pool4, @pool_up, @pool_virt_limit, @pool_virt_limit_hosted]).each do |ent_name, pool|
       instance_variable_set("@#{ent_name}", @candlepin_client.consume_pool(pool.id, {:quantity => 1})[0])
     end
     # pool3 is special
