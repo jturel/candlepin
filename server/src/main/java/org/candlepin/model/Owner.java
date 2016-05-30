@@ -20,7 +20,12 @@ import org.candlepin.resteasy.InfoProperty;
 
 import com.fasterxml.jackson.annotation.JsonFilter;
 
+import org.hibernate.annotations.Filter;
+import org.hibernate.annotations.FilterDef;
+import org.hibernate.annotations.Filters;
 import org.hibernate.annotations.GenericGenerator;
+import org.hibernate.annotations.ParamDef;
+import org.hibernate.annotations.SqlFragmentAlias;
 
 import java.io.Serializable;
 import java.util.HashSet;
@@ -55,6 +60,12 @@ import io.swagger.annotations.ApiModelProperty;
 @Entity
 @Table(name = "cp_owner")
 @JsonFilter("OwnerFilter")
+@FilterDef(name = "OwnerFilter", parameters=@ParamDef(name = "owner_id", type = "string"))
+@Filters({
+    @Filter(name= "OwnerFilter", condition = "{owner}.id = :owner_id", aliases = {
+        @SqlFragmentAlias(alias="owner", table="cp_owner")
+    })
+})
 public class Owner extends AbstractHibernateObject implements Serializable,
     Linkable, Owned, Named, Eventful {
     private static final long serialVersionUID = -7059065874812188165L;

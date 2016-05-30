@@ -23,10 +23,15 @@ import com.fasterxml.jackson.annotation.JsonFilter;
 
 import org.apache.commons.lang.StringUtils;
 import org.hibernate.annotations.Cascade;
+import org.hibernate.annotations.Filter;
+import org.hibernate.annotations.FilterDef;
+import org.hibernate.annotations.Filters;
 import org.hibernate.annotations.ForeignKey;
 import org.hibernate.annotations.Formula;
 import org.hibernate.annotations.GenericGenerator;
 import org.hibernate.annotations.Index;
+import org.hibernate.annotations.ParamDef;
+import org.hibernate.annotations.SqlFragmentAlias;
 import org.hibernate.annotations.Type;
 
 import java.util.ArrayList;
@@ -75,6 +80,12 @@ import javax.xml.bind.annotation.XmlTransient;
 @Entity
 @Table(name = "cp_consumer")
 @JsonFilter("ConsumerFilter")
+@FilterDef(name = "ConsumerOwnerFilter", parameters=@ParamDef(name = "owner_id", type = "string"))
+@Filters({
+    @Filter(name= "ConsumerOwnerFilter", condition = "{consumer}.owner_id = :owner_id", aliases = {
+        @SqlFragmentAlias(alias="consumer", table="cp_consumer")
+    })
+})
 public class Consumer extends AbstractHibernateObject implements Linkable, Owned, Named, ConsumerProperty,
     Eventful {
 

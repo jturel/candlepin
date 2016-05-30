@@ -78,6 +78,7 @@ public class OwnerProductResource {
     private ProductCurator productCurator;
     private ContentCurator contentCurator;
     private OwnerCurator ownerCurator;
+    private OwnerProductCurator ownerProductCurator;
     private ProductCertificateCurator productCertCurator;
     private ProductManager productManager;
     private Configuration config;
@@ -86,11 +87,13 @@ public class OwnerProductResource {
     @Inject
     public OwnerProductResource(ProductCurator productCurator, ContentCurator contentCurator,
         OwnerCurator ownerCurator, ProductCertificateCurator productCertCurator,
-        ProductManager productManager, Configuration config, I18n i18n) {
+        ProductManager productManager, OwnerProductCurator ownerProductCurator, Configuration config,
+        I18n i18n) {
 
         this.productCurator = productCurator;
         this.contentCurator = contentCurator;
         this.ownerCurator = ownerCurator;
+        this.ownerProductCurator = ownerProductCurator;
         this.productCertCurator = productCertCurator;
         this.productManager = productManager;
         this.config = config;

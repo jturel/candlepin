@@ -24,7 +24,12 @@ import org.candlepin.model.Product;
 import org.candlepin.model.Release;
 
 import org.hibernate.annotations.Cascade;
+import org.hibernate.annotations.Filter;
+import org.hibernate.annotations.FilterDef;
+import org.hibernate.annotations.Filters;
 import org.hibernate.annotations.GenericGenerator;
+import org.hibernate.annotations.ParamDef;
+import org.hibernate.annotations.SqlFragmentAlias;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -55,6 +60,12 @@ import javax.xml.bind.annotation.XmlRootElement;
 @Entity
 @Table(name = "cp_activation_key",
     uniqueConstraints = {@UniqueConstraint(columnNames = {"name", "owner_id"})})
+@FilterDef(name = "ActivationKeyOwnerFilter", parameters=@ParamDef(name = "owner_id", type = "string"))
+@Filters({
+    @Filter(name= "ActivationKeyOwnerFilter", condition = "{ak}.id = :owner_id", aliases = {
+        @SqlFragmentAlias(alias="ak", table="cp_activation_key")
+    })
+})
 public class ActivationKey extends AbstractHibernateObject implements Owned, Named, Eventful {
 
     public static final int RELEASE_VERSION_LENGTH = 255;

@@ -41,17 +41,13 @@ public class AttachPermission extends TypedPermission<Pool> {
     }
 
     @Override
-    public boolean canAccessTarget(Pool target, SubResource subResource,
-        Access required) {
-
+    public boolean canAccessTarget(Pool target, SubResource subResource, Access required) {
         // Allow viewing a specific pool:
         if (subResource.equals(SubResource.NONE) && Access.READ_ONLY.equals(required)) {
             return target.getOwner().getKey().equals(owner.getKey());
         }
-
         // Allow subscribing to a pool:
-        else if (subResource.equals(SubResource.ENTITLEMENTS) &&
-            Access.CREATE.equals(required)) {
+        else if (subResource.equals(SubResource.ENTITLEMENTS) && Access.CREATE.equals(required)) {
             return target.getOwner().getKey().equals(owner.getKey());
         }
 
@@ -59,12 +55,11 @@ public class AttachPermission extends TypedPermission<Pool> {
     }
 
     @Override
-    public Criterion getCriteriaRestrictions(Class entityClass) {
-        if (entityClass.equals(Pool.class)) {
-            return Restrictions.eq("owner", owner);
+    public void enableAccessibilityFilters(Session session, Class entityClass) {
+        if (Pool.class.equals(entityClass)) {
+            session.enableFilter("PoolOwnerFilter")
+                .setParameter("owner_id", this.owner.getId());
         }
-
-        return null;
     }
 
     @Override

@@ -27,6 +27,11 @@ import java.util.List;
 import java.util.Set;
 
 
+// TODO: FIXME:
+// Nothing in this class uses secure criteria, so we are potentially skipping lots of access
+// filtering. This needs to be updated to include the access filtering in some capacity before it
+// gets merged into master
+
 
 /**
  * The OwnerProductCurator provides functionality for managing the mapping between owners and
@@ -40,6 +45,26 @@ public class OwnerProductCurator extends AbstractHibernateCurator<OwnerProduct> 
      */
     public OwnerProductCurator() {
         super(OwnerProduct.class);
+    }
+
+    public Product getProductById(Owner owner, String productId) {
+        return this.getProductById(owner.getId(), productId);
+    }
+
+    @Transactional
+    public Product getProductById(String ownerId, String productId) {
+        String hql = "SELECT p " +
+            "FROM OwnerProduct op " +
+            "  JOIN op.product p " +
+            "  JOIN op.owner o "+
+            "WHERE o = :owner " +
+            "  p.id = :pid";
+
+        return (Product) this.getEntityManager()
+            .createQuery(hql, Product.class)
+            .setParameter("owner", owner)
+            .setParameter("pid", productId)
+            .getSingleResult();
     }
 
     @Transactional
@@ -58,7 +83,7 @@ public class OwnerProductCurator extends AbstractHibernateCurator<OwnerProduct> 
 
     @Transactional
     public List<Product> getProductsByOwner(Owner owner) {
-        String hql = "SELECT o " +
+        String hql = "SELECT p " +
             "FROM OwnerProduct op " +
             "  JOIN op.product p " +
             "  JOIN op.owner o "+
@@ -68,6 +93,11 @@ public class OwnerProductCurator extends AbstractHibernateCurator<OwnerProduct> 
             .createQuery(hql, Product.class)
             .setParameter("owner", owner)
             .getResultList();
+    }
+
+    @Transactional
+    public List<Product> getProductsByIds(Owner owner, Collection<? extends Serializable> productIds) {
+
     }
 
     @Transactional
@@ -83,7 +113,7 @@ public class OwnerProductCurator extends AbstractHibernateCurator<OwnerProduct> 
         String hql = "SELECT count(op) FROM OwnerProduct op " +
             "WHERE op.owner = :owner AND op.product = :product";
 
-        int count = (Integer) this.getEntityManager()
+        long count = (Long) this.getEntityManager()
             .createQuery(hql)
             .setParameter("owner", owner)
             .setParameter("product", product)
@@ -101,6 +131,32 @@ public class OwnerProductCurator extends AbstractHibernateCurator<OwnerProduct> 
         }
 
         return false;
+    }
+
+    @Transactional
+    public int mapProductToOwners(Product product, Owner... owners) {
+        int count = 0;
+
+        for (Owner owner : owners) {
+            if (this.mapProductToOwner(product, owner)) {
+                ++count;
+            }
+        }
+
+        return count;
+    }
+
+    @Transactional
+    public int mapOwnerToProducts(Owner owner, Product... products) {
+        int count = 0;
+
+        for (Product product : products) {
+            if (this.mapProductToOwner(product, owner)) {
+                ++count;
+            }
+        }
+
+        return count;
     }
 
     @Transactional

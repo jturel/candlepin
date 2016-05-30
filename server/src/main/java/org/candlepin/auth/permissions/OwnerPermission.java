@@ -36,7 +36,6 @@ public class OwnerPermission implements Permission, Serializable {
     private static final long serialVersionUID = -8906113952952371238L;
 
     private final Owner owner;
-
     private final Access access;
 
     public OwnerPermission(Owner owner, Access access) {
@@ -45,8 +44,7 @@ public class OwnerPermission implements Permission, Serializable {
     }
 
     @Override
-    public boolean canAccess(Object target, SubResource subResource,
-        Access requiredAccess) {
+    public boolean canAccess(Object target, SubResource subResource, Access requiredAccess) {
         if (target instanceof Owned) {
             // First make sure the owner matches:
             if (owner.getKey().equals(((Owned) target).getOwner().getKey()) &&
@@ -61,25 +59,48 @@ public class OwnerPermission implements Permission, Serializable {
     }
 
     @Override
-    public Criterion getCriteriaRestrictions(Class entityClass) {
-        if (entityClass.equals(Owner.class)) {
-            return Restrictions.eq("key", owner.getKey());
+    public void enableAccessibilityFilters(Session session, Class entityClass) {
+        if (Owner.class.equals(entityClass)) {
+            session.enableFilter("OwnerFilter")
+                .setParameter("owner_id", this.owner.getId());
         }
-        else if (entityClass.equals(Consumer.class)) {
-            return Restrictions.eq("owner", owner);
+        else if (Consumer.class.equals(entityClass)) {
+            session.enableFilter("ConsumerOwnerFilter")
+                .setParameter("owner_id", this.owner.getId());
         }
-        else if (entityClass.equals(Pool.class)) {
-            return Restrictions.eq("owner", owner);
+        else if (Pool.class.equals(entityClass)) {
+            session.enableFilter("PoolOwnerFilter")
+                .setParameter("owner_id", this.owner.getId());
         }
-        else if (entityClass.equals(ActivationKey.class)) {
-            return Restrictions.eq("owner", owner);
+        else if (ActivationKey.class.equals(entityClass)) {
+            session.enableFilter("ActivationKeyOwnerFilter")
+                .setParameter("owner_id", this.owner.getId());
         }
-        else if (entityClass.equals(Environment.class)) {
-            return Restrictions.eq("owner", owner);
+        else if (Environment.class.equals(entityClass)) {
+            session.enableFilter("EnvironmentOwnerFilter")
+                .setParameter("owner_id", this.owner.getId());
         }
-
-        return null;
     }
+
+    // public Criterion getCriteriaRestrictions(Class entityClass) {
+    //     if (entityClass.equals(Owner.class)) {
+    //         return Restrictions.eq("key", owner.getKey());
+    //     }
+    //     else if (entityClass.equals(Consumer.class)) {
+    //         return Restrictions.eq("owner", owner);
+    //     }
+    //     else if (entityClass.equals(Pool.class)) {
+    //         return Restrictions.eq("owner", owner);
+    //     }
+    //     else if (entityClass.equals(ActivationKey.class)) {
+    //         return Restrictions.eq("owner", owner);
+    //     }
+    //     else if (entityClass.equals(Environment.class)) {
+    //         return Restrictions.eq("owner", owner);
+    //     }
+
+    //     return null;
+    // }
 
     @Override
     public Owner getOwner() {

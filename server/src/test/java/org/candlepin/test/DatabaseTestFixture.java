@@ -39,6 +39,7 @@ import org.candlepin.model.Entitlement;
 import org.candlepin.model.EntitlementCertificate;
 import org.candlepin.model.Owner;
 import org.candlepin.model.OwnerCurator;
+import org.candlepin.model.OwnerProductCurator;
 import org.candlepin.model.PermissionBlueprint;
 import org.candlepin.model.Pool;
 import org.candlepin.model.PoolCurator;
@@ -247,9 +248,13 @@ public class DatabaseTestFixture {
         return owner;
     }
 
-    protected Product createProduct(String id, String name, Owner owner) {
-        Product product = TestUtil.createProduct(id, name, owner);
-        this.productCurator.create(product);
+    protected Product createProduct(String id, String name, Owner... owners) {
+        Product product = TestUtil.createProduct(id, name, null);
+        product = this.productCurator.create(product);
+
+        for (Owner owner : owners) {
+            this.ownerProductCurator.mapProductToOwner(product, owner);
+        }
 
         return product;
     }

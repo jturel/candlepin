@@ -14,8 +14,13 @@
  */
 package org.candlepin.model;
 
+import org.hibernate.annotations.Filter;
+import org.hibernate.annotations.FilterDef;
+import org.hibernate.annotations.Filters;
 import org.hibernate.annotations.ForeignKey;
 import org.hibernate.annotations.Index;
+import org.hibernate.annotations.ParamDef;
+import org.hibernate.annotations.SqlFragmentAlias;
 
 import java.io.Serializable;
 import java.util.HashSet;
@@ -50,6 +55,12 @@ import javax.xml.bind.annotation.XmlTransient;
 @Entity
 @Table(name = "cp_environment",
     uniqueConstraints = {@UniqueConstraint(columnNames = {"owner_id", "name"})})
+@FilterDef(name = "EnvironmentOwnerFilter", parameters=@ParamDef(name = "owner_id", type = "string"))
+@Filters({
+    @Filter(name= "EnvironmentOwnerFilter", condition = "{env}.owner_id = :owner_id", aliases = {
+        @SqlFragmentAlias(alias="env", table="cp_environment")
+    })
+})
 public class Environment extends AbstractHibernateObject implements Serializable, Owned {
     private static final long serialVersionUID = 4162471699021316341L;
 

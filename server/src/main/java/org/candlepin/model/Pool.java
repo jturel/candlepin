@@ -25,10 +25,15 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.commons.lang.StringUtils;
 import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.Cascade;
+import org.hibernate.annotations.Filter;
+import org.hibernate.annotations.FilterDef;
+import org.hibernate.annotations.Filters;
 import org.hibernate.annotations.Formula;
 import org.hibernate.annotations.GenericGenerator;
 import org.hibernate.annotations.LazyCollection;
 import org.hibernate.annotations.LazyCollectionOption;
+import org.hibernate.annotations.ParamDef;
+import org.hibernate.annotations.SqlFragmentAlias;
 
 import java.util.Collection;
 import java.util.Date;
@@ -69,6 +74,12 @@ import javax.xml.bind.annotation.XmlTransient;
 @Entity
 @Table(name = "cp_pool")
 @JsonFilter("PoolFilter")
+@FilterDef(name = "PoolOwnerFilter", parameters=@ParamDef(name = "owner_id", type = "string"))
+@Filters({
+    @Filter(name= "PoolOwnerFilter", condition = "{pool}.owner_id = :owner_id", aliases = {
+        @SqlFragmentAlias(alias="pool", table="cp_pool")
+    })
+})
 public class Pool extends AbstractHibernateObject implements Persisted, Owned, Named, Comparable<Pool>,
     Eventful {
 

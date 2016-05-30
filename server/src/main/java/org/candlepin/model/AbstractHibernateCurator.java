@@ -263,7 +263,6 @@ public abstract class AbstractHibernateCurator<E extends Persisted> {
         return this.createSecureCriteria(null);
     }
 
-
     /**
      * Gives the permissions a chance to add aliases and then restrictions to the query.
      * Uses an "or" so a principal could carry permissions for multiple owners
@@ -276,46 +275,11 @@ public abstract class AbstractHibernateCurator<E extends Persisted> {
      * @return Criteria Final criteria query with all filters applied.
      */
     protected Criteria createSecureCriteria(String alias) {
-        Principal principal = principalProvider.get();
-        Criteria query = (alias != null && !alias.equals("")) ?
-            currentSession().createCriteria(entityType, alias) :
-            currentSession().createCriteria(entityType);
+        Criteria criteria = (alias != null && !alias.equals("")) ?
+            this.currentSession().createCriteria(this.entityType, alias) :
+            this.currentSession().createCriteria(this.entityType);
 
-        /*
-         * There are situations where consumer queries are run before there is a principal,
-         * i.e. during authentication when we're looking up the consumer itself.
-         */
-        if (principal == null) {
-            return query;
-        }
-
-
-        // Admins do not need query filtering enabled.
-        if (principal.hasFullAccess()) {
-            return query;
-        }
-
-        Criterion finalCriterion = null;
-        for (Permission perm : principal.getPermissions()) {
-
-            Criterion crit = perm.getCriteriaRestrictions(entityType);
-            if (crit != null) {
-                log.debug("Got criteria restrictions from permissions {} for {}: {}",
-                    new Object [] {perm, entityType, crit});
-                if (finalCriterion == null) {
-                    finalCriterion = crit;
-                }
-                else {
-                    finalCriterion = Restrictions.or(finalCriterion, crit);
-                }
-            }
-        }
-
-        if (finalCriterion != null) {
-            query.add(finalCriterion);
-        }
-
-        return query;
+        return this.addAccessibilityFilter(criteria, this.entityType);
     }
 
     /**
@@ -333,6 +297,9 @@ public abstract class AbstractHibernateCurator<E extends Persisted> {
      * Creates a detached criteria object to use as the basis of a permission-oriented entity
      * lookup query.
      *
+     * @param entityType
+     *  A class representing the entity at which the criteria will be rooted
+     *
      * @param alias
      *  The alias to use for the main entity, or null to omit an alias
      *
@@ -340,49 +307,113 @@ public abstract class AbstractHibernateCurator<E extends Persisted> {
      *  a detached criteria object containing permission restrictions
      */
     protected DetachedCriteria createSecureDetachedCriteria(String alias) {
-        // Yes, sadly, this entire copy/paste is necessary because Criteria and DetachedCriteria
-        // do not have a common parent.
-
-        Principal principal = principalProvider.get();
-        DetachedCriteria query = (alias != null && !alias.equals("")) ?
+        DetachedCriteria criteria = (alias != null && !alias.equals("")) ?
             DetachedCriteria.forClass(this.entityType, alias) :
             DetachedCriteria.forClass(this.entityType);
 
-        /*
-         * There are situations where consumer queries are run before there is a principal,
-         * i.e. during authentication when we're looking up the consumer itself.
-         */
-        if (principal == null) {
-            return query;
-        }
+        return this.addAccessibilityFilter(criteria, this.entityType);
+    }
 
-        // Admins do not need query filtering enabled.
-        if (principal.hasFullAccess()) {
-            return query;
+    /**
+     * Adds the visibility and security restrictions to the given criteria. If the current
+     * principal
+     *
+     * @param criteria
+     *  The criteria to which the restriction criterion should be added
+     *
+     * @param entityType
+     *  A class representing the entity type to which access should be restricted
+     *
+     * @return
+     *  the provided criteria
+     */
+    protected Criteria addAccessibilityFilter(Criteria criteria, Class entityType) {
+        Principal principal = this.principalProvider.get();
+
+        // If this is run before we have a principal, or they have full access, just return the
+        // criteria unmodified.
+        // The former can occur when consumer queries are run during authentication when we're
+        // fetching the consumer issuing the request
+        if (principal == null || principal.hasFullAccess()) {
+            return criteria;
         }
 
         Criterion finalCriterion = null;
-        for (Permission perm : principal.getPermissions()) {
+        for (Permission permission : principal.getPermissions()) {
+            Criterion crit = permission.getCriteriaRestrictions();
 
-            Criterion crit = perm.getCriteriaRestrictions(entityType);
             if (crit != null) {
-                log.debug("Got criteria restrictions from permissions {} for {}: {}",
-                    new Object [] {perm, entityType, crit});
-                if (finalCriterion == null) {
-                    finalCriterion = crit;
-                }
-                else {
-                    finalCriterion = Restrictions.or(finalCriterion, crit);
-                }
+                log.debug(
+                    "Got criteria restrictions from permissions {} for {}: {}",
+                    perm, entityType, crit
+                );
+
+                finalCriterion = finalCriterion == null ? crit : Restrictions.or(finalCriterion, crit);
             }
         }
 
         if (finalCriterion != null) {
-            query.add(finalCriterion);
+            criteria.add(finalCriterion);
         }
 
-        return query;
+        return criteria;
     }
+
+    /**
+     * Adds the visibility and security restrictions to the given criteria. If the current
+     * principal
+     *
+     * @param criteria
+     *  The criteria to which the restriction criterion should be added
+     *
+     * @param entityType
+     *  A class representing the entity type to which access should be restricted
+     *
+     * @return
+     *  the provided criteria
+     */
+    protected DetachedCriteria addAccessibilityFilter(DetachedCriteria criteria, Class entityType) {
+        // Yes, sadly, this entire copy/paste is necessary because Criteria and DetachedCriteria
+        // do not have a common parent.
+        Principal principal = this.principalProvider.get();
+
+        // If this is run before we have a principal, or they have full access, just return the
+        // criteria unmodified.
+        // The former can occur when consumer queries are run during authentication when we're
+        // fetching the consumer issuing the request
+        if (principal == null || principal.hasFullAccess()) {
+            return criteria;
+        }
+
+        Criterion finalCriterion = null;
+        for (Permission permission : principal.getPermissions()) {
+            Criterion crit = permission.getCriteriaRestrictions();
+
+            if (crit != null) {
+                log.debug(
+                    "Got criteria restrictions from permissions {} for {}: {}",
+                    perm, entityType, crit
+                );
+
+                finalCriterion = finalCriterion == null ? crit : Restrictions.or(finalCriterion, crit);
+            }
+        }
+
+        if (finalCriterion != null) {
+            criteria.add(finalCriterion);
+        }
+
+        return criteria;
+    }
+
+    // protected <T> CriteriaQuery<T> addAccessibilityFilter(CriteriaQuery<T> criteria, Class entityType) {
+
+
+
+
+    //     return criteria;
+    // }
+
 
     @SuppressWarnings("unchecked")
     @Transactional

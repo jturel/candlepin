@@ -36,12 +36,12 @@ public class CheckJobStatusPermission extends TypedPermission<JobStatus> {
 
     private String principalName;
     private String principalType;
-    private List<String> allowedOrgKeys;
+    private List<String> allowedOrgIds;
 
-    public CheckJobStatusPermission(PrincipalData principalData, List<String> allowedOrgKeys) {
+    public CheckJobStatusPermission(PrincipalData principalData, List<String> allowedOrgIds) {
         this.principalName = principalData.getName();
         this.principalType = principalData.getType();
-        this.allowedOrgKeys = allowedOrgKeys;
+        this.allowedOrgIds = allowedOrgIds;
     }
 
     @Override
@@ -56,29 +56,46 @@ public class CheckJobStatusPermission extends TypedPermission<JobStatus> {
     }
 
     @Override
-    @SuppressWarnings("checkstyle:indentation")
-    public Criterion getCriteriaRestrictions(Class entityClass) {
-        if (!entityClass.equals(JobStatus.class)) {
-            return null;
+    public void enableAccessibilityFilters(Session session, Class entityClass) {
+        if (JobStatus.class.equals(entityClass)) {
+            session.enableFilter("JobStatusOwnersFilter")
+                .setParameterList("owner_ids", this.allowedOrgIds);
+
+            session.enableFilter("JobStatusOwnerTargetFilter")
+                .setParameter("target_type", JobStatus.TargetType.OWNER.ordinalValue());
+
+            // If the principal is not a user, make sure to enforce a principalName match.
+            if (!"user".equalsIgnoreCase(this.principalType)) {
+                session.enableFilter("JobStatusPrincipalNameFilter")
+                    .setParameter("p_name", this.principalName);
+            }
         }
-
-        Conjunction conjunction = Restrictions.conjunction();
-        // Org has to match.
-        conjunction.add(Restrictions.in("ownerId", allowedOrgKeys));
-
-        conjunction.add(Restrictions.or(
-            Restrictions.ne("targetType", JobStatus.TargetType.OWNER),
-            Restrictions.and(
-                Restrictions.eq("targetType", JobStatus.TargetType.OWNER),
-                Restrictions.eqProperty("ownerId", "targetId"))
-        ));
-
-        // If the principal is not a user, make sure to enforce a principalName match.
-        if (!"user".equalsIgnoreCase(principalType)) {
-            conjunction.add(Restrictions.eq("principalName", principalName));
-        }
-        return conjunction;
     }
+
+    // @Override
+    // @SuppressWarnings("checkstyle:indentation")
+    // public Criterion getCriteriaRestrictions(Class entityClass) {
+    //     if (!entityClass.equals(JobStatus.class)) {
+    //         return null;
+    //     }
+
+    //     Conjunction conjunction = Restrictions.conjunction();
+    //     // Org has to match.
+    //     conjunction.add(Restrictions.in("ownerId", allowedOrgIds));
+
+    //     conjunction.add(Restrictions.or(
+    //         Restrictions.ne("targetType", JobStatus.TargetType.OWNER),
+    //         Restrictions.and(
+    //             Restrictions.eq("targetType", JobStatus.TargetType.OWNER),
+    //             Restrictions.eqProperty("ownerId", "targetId"))
+    //     ));
+
+    //     // If the principal is not a user, make sure to enforce a principalName match.
+    //     if (!"user".equalsIgnoreCase(principalType)) {
+    //         conjunction.add(Restrictions.eq("principalName", principalName));
+    //     }
+    //     return conjunction;
+    // }
 
     @Override
     public boolean canAccessTarget(JobStatus target, SubResource subResource, Access required) {
@@ -86,7 +103,7 @@ public class CheckJobStatusPermission extends TypedPermission<JobStatus> {
         boolean principalNameMatch = principalName != null && principalName.equals(target.getPrincipalName());
 
         String ownerId = target.getOwnerId();
-        boolean ownerOk = ownerId != null && allowedOrgKeys.contains(ownerId);
+        boolean ownerOk = ownerId != null && allowedOrgIds.contains(ownerId);
 
         if (!ownerOk) {
             return false;

@@ -41,6 +41,9 @@ import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlTransient;
+
+
+
 /**
  * Represents the current status for a long-running job.
  */
@@ -48,6 +51,20 @@ import javax.xml.bind.annotation.XmlTransient;
 @XmlAccessorType(XmlAccessType.PROPERTY)
 @Entity
 @Table(name = "cp_job")
+@FilterDefs({
+    @FilterDef(name = "JobStatusPrincipalNameFilter", parameters =
+        @ParamDef(name = "p_name", type = "string")),
+    @FilterDef(name = "JobStatusOwnersFilter", parameters =
+        @ParamDef(name = "owner_ids", type = "string")),
+    @FilterDef(name = "JobStatusOwnerTargetFilter", parameters =
+        @ParamDef(name = "target_type", type = "integer"))
+})
+@Filters({
+    @Filter(name= "JobStatusPrincipalNameFilter", condition = "principalname = :p_name"),
+    @Filter(name= "JobStatusOwnerFilter", condition = "ownerid IN (:owner_ids)"),
+    @Filter(name= "JobStatusOwnerTargetFilter", condition =
+        "(targettype != :target_type OR (targettype = :target_type AND targetid = ownerid))")
+})
 public class JobStatus extends AbstractHibernateObject {
 
     public static final String TARGET_TYPE = "target_type";
